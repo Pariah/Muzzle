@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Lua
+      run: sudo apt-get install lua5.1
+    - name: Run Lua syntax check
+      run: find . -name "*.lua" -print0 | xargs -0 -n1 lua5.1 -c
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Create addon package
+      run: |
+        mkdir Muzzle
+        cp -r Core Modules UI Data Localization Libs Muzzle.toc Muzzle/
+        zip -r Muzzle.zip Muzzle
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: Muzzle
+        path: Muzzle.zip
+
+  create_release:
+    needs: [lint, package]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Get version
+      id: get_version
+      run: echo ::set-output name=VERSION::$(grep "## Version:" Muzzle.toc | cut -d' ' -f3)
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ steps.get_version.outputs.VERSION }}
+        release_name: Release ${{ steps.get_version.outputs.VERSION }}
+        draft: false
+        prerelease: false
+    - name: Download artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: Muzzle
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./Muzzle.zip
+        asset_name: Muzzle-${{ steps.get_version.outputs.VERSION }}.zip
+        asset_content_type: application/zip
