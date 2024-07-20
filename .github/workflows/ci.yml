@@ -18,7 +18,7 @@ jobs:
         shopt -s nullglob
         for file in **/*.lua; do
           echo "Checking $file"
-          lua5.1 -c "$file"
+          lua5.1 -e "assert(loadfile('$file'))" 2>&1
           if [ $? -ne 0 ]; then
             echo "Error in $file"
             exit 1
