@@ -10,23 +10,27 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Install Lua
       run: sudo apt-get install lua5.1
     - name: Run Lua syntax check
-      run: find . -name "*.lua" -print0 | xargs -0 -n1 lua5.1 -c
+      run: |
+        shopt -s nullglob
+        for file in **/*.lua; do
+          lua5.1 -c "$file" || exit 1
+        done
 
   package:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Create addon package
       run: |
         mkdir Muzzle
         cp -r Core Modules UI Data Localization Libs Muzzle.toc Muzzle/ || true
         zip -r Muzzle.zip Muzzle
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Muzzle
         path: Muzzle.zip
@@ -36,7 +40,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Get version
       id: get_version
       run: echo "VERSION=$(grep "## Version:" Muzzle.toc | cut -d' ' -f3)" >> $GITHUB_OUTPUT
@@ -51,7 +55,7 @@ jobs:
         draft: false
         prerelease: false
     - name: Download artifact
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: Muzzle
     - name: Upload Release Asset
