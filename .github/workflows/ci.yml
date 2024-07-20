@@ -17,7 +17,12 @@ jobs:
       run: |
         shopt -s nullglob
         for file in **/*.lua; do
-          lua5.1 -c "$file" || exit 1
+          echo "Checking $file"
+          lua5.1 -c "$file"
+          if [ $? -ne 0 ]; then
+            echo "Error in $file"
+            exit 1
+          fi
         done
 
   package:
